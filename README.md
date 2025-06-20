@@ -9,7 +9,7 @@ A Laravel package for integrating Apache Kafka as a queue driver in Laravel appl
 - **Supports Laravel Queues** with `queue:work` integration.
 - **Lightweight & Efficient** implementation for event-driven architecture.
 - **Microservice-Friendly** for decoupled applications.
-- **Compatible with Laravel 11+**
+- **Compatible with Laravel 11 and 12**
 
 ## **📦 Installation**
 
@@ -120,4 +120,4 @@ php artisan queue:work --queue=default_topic
 
 ## **🎯 Done!**
 
-You have now successfully integrated Kafka as a queue in Laravel 11+. 🚀
+You have now successfully integrated Kafka as a queue in Laravel 11 and 12. 🚀
