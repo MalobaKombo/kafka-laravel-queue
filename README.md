@@ -2,20 +2,22 @@
 
 A Laravel package for integrating Apache Kafka as a queue driver in Laravel applications.
 
-## **🚀 Features**
+---
 
-- **Custom Kafka Queue Driver** for Laravel.
-- **Push & Consume Jobs** via Kafka.
-- **Supports Laravel Queues** with `queue:work` integration.
-- **Lightweight & Efficient** implementation for event-driven architecture.
-- **Microservice-Friendly** for decoupled applications.
-- **Compatible with Laravel 11 and 12**
+## 🚀 Features
 
-## **📦 Installation**
+- Custom Kafka Queue Driver for Laravel
+- Push & Consume Jobs via Kafka
+- Supports Laravel Queues with `queue:work` integration
+- Lightweight & Efficient for event-driven architecture
+- Microservice-Friendly for decoupled applications
+- Compatible with Laravel 11 and 12
 
-### **1️⃣ Update Your `composer.json`**
+---
 
-Modify your `composer.json` to include the package repository:
+## 📦 Installation
+
+### 1️⃣ Update Your `composer.json`
 
 ```json
 "require": {
@@ -24,57 +26,52 @@ Modify your `composer.json` to include the package repository:
 },
 "autoload": {
     "psr-4": {
-        "Kafka\\": "vendor/mk/kafka-laravel-queue/src/"
+        "Kafka\": "vendor/mk/kafka-laravel-queue/src/"
     }
 },
 "repositories": [
-   {
-      "type": "vcs",
-      "url": "https://github.com/MalobaKombo/kafka-laravel-queue.git"
-   }
+    {
+        "type": "vcs",
+        "url": "https://github.com/MalobaKombo/kafka-laravel-queue.git"
+    }
 ]
 ```
 
-### **2️⃣ Install via Composer**
+### 2️⃣ Install via Composer
 
-After updating `composer.json`, install the package:
-
-```sh
+```bash
 composer update mk/kafka-laravel-queue
 ```
 
-### **3️⃣ Register the Service Provider**
-
-In `./src/bootstrap/providers.php`, add:
+### 3️⃣ Register the Service Provider
 
 ```php
-<?php
+// ./src/bootstrap/providers.php
 
 return [
     Kafka\KafkaServiceProvider::class,
 ];
 ```
 
-## **⚙️ Configuration**
+---
 
-Update your `.env` file with Kafka settings:
+## ⚙️ Configuration
+
+### .env Settings
 
 ```ini
 KAFKA_QUEUE=default_topic
-; For KAFKA_ENVIRONMENT use "internal" or "external" depending on your Kafka environment
 KAFKA_ENVIRONMENT=internal
 BOOTSTRAP_SERVERS=kafka-1:9092,kafka-2:9092
-; For KAFKA_SECURITY_PROTOCOL use SASL_PLAINTEXT for external Kafka environments
 SECURITY_PROTOCOL=PLAINTEXT
 SASL_MECHANISMS=PLAIN
-; Use Credentials for external Kafka environments
 KAFKA_SASL_USERNAME=myuser
 KAFKA_SASL_PASSWORD=mypassword
 GROUP_ID=default_group
 QUEUE_CONNECTION=kafka
 ```
 
-Then, update `config/queue.php`:
+### queue.php Configuration
 
 ```php
 'connections' => [
@@ -85,18 +82,18 @@ Then, update `config/queue.php`:
         'bootstrap_servers' => env('BOOTSTRAP_SERVERS'),
         'security_protocol' => env('SECURITY_PROTOCOL'),
         'sasl_mechanisms' => env('SASL_MECHANISMS'),
-        'sasl_username' => env('SASL_USERNAME'),
-        'sasl_password' => env('SASL_PASSWORD'),
+        'sasl_username' => env('KAFKA_SASL_USERNAME'),
+        'sasl_password' => env('KAFKA_SASL_PASSWORD'),
         'group_id' => env('GROUP_ID'),
     ],
 ],
 ```
 
-## **🛠️ Usage**
+---
 
-### **1️⃣ Dispatching Jobs**
+## 🛠️ Usage
 
-You can push jobs to Kafka like any Laravel queue:
+### 1️⃣ Dispatching Jobs
 
 ```php
 use App\Jobs\SendMessageJob;
@@ -105,19 +102,132 @@ SendMessageJob::dispatch(['message' => 'Hello from Laravel Kafka!'])
     ->onQueue('default_topic');
 ```
 
-### **2️⃣ Consuming Jobs**
+### 2️⃣ Consuming Jobs
 
-To start processing jobs from Kafka:
-
-```sh
+```bash
 php artisan queue:work --queue=default_topic
 ```
 
-### **3️⃣ Microservices Namespace & Data Format**
+---
 
-- The **jobs producing and receiving** in each microservice **must be in the same namespace**.
-- The **data must be an array** when dispatching and receiving messages.
+## ✅ Kafka Job Namespace Example
 
-## **🎯 Done!**
+Kafka uses the job class namespace to resolve the consumer job.
 
-You have now successfully integrated Kafka as a queue in Laravel 11 and 12. 🚀
+If the consumer cannot find a matching FQCN, you’ll see:
+
+```
+❌ Received invalid job data!
+```
+
+### 📌 Rule
+
+- Producer and Consumer jobs must use the **same namespace and class name**.
+
+---
+
+## ✅ Example 1: School Verification Job
+
+### 🎯 Producer (IAM Service)
+
+```php
+// File: app/Jobs/Web/Verification/VerifySchoolJob.php
+
+namespace App\Jobs\Web\Verification;
+
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class VerifySchoolJob implements ShouldQueue {
+    public array $data;
+
+    public function __construct(array $data) {
+        $this->data = $data;
+    }
+
+    public function handle(): void {
+        // This will NOT run in the producer service
+    }
+}
+```
+
+### 📥 Consumer (School Service)
+
+```php
+// File: app/Jobs/Web/Verification/VerifySchoolJob.php
+
+namespace App\Jobs\Web\Verification;
+
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class VerifySchoolJob implements ShouldQueue {
+    public array $data;
+
+    public function __construct(array $data) {
+        $this->data = $data;
+    }
+
+    public function handle(): void {
+        // ✅ Create DB, trigger events, mark as verified, etc.
+    }
+}
+```
+
+---
+
+## ✅ Example 2: Send Notification Job
+
+### 🎯 Producer
+
+```php
+// File: app/Jobs/Web/Notifications/SendNotificationJob.php
+
+namespace App\Jobs\Web\Notifications;
+
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class SendNotificationJob implements ShouldQueue {
+    public array $data;
+
+    public function __construct(array $data) {
+        $this->data = $data;
+    }
+
+    public function handle(): void {}
+}
+```
+
+### 📥 Consumer
+
+```php
+// File: app/Jobs/Web/Notifications/SendNotificationJob.php
+
+namespace App\Jobs\Web\Notifications;
+
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class SendNotificationJob implements ShouldQueue {
+    public array $data;
+
+    public function __construct(array $data) {
+        $this->data = $data;
+    }
+
+    public function handle(): void {
+        // 🔔 Send SMS, email or push notification
+    }
+}
+```
+
+---
+
+## ✅ Summary
+
+- Use **identical namespaces and class names** for Kafka jobs across microservices.
+- Ensure **data is always passed as an array**.
+- Register consumers with `queue:work` using the correct topic.
+
+```bash
+php artisan queue:work --queue=default_topic
+```
+
+You’re now Kafka-ready in Laravel! 🚀
